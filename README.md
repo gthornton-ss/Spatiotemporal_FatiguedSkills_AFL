@@ -19,3 +19,8 @@ This model analysis aids coaching in focussing on metrics that promote successfu
 - `Assignment3_Storyboard.html`: Knitted HTML version
 - `Football dataset.xlsx`: Excel file used in the project
 - `Assignment 3.RProj`: The Project used in RStudio
+
+
+---
+
+*Author: Gabriel Thornton | April 2025*
