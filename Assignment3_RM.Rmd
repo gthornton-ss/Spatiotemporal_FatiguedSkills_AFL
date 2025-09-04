@@ -1,0 +1,242 @@
+---
+title: "The Impact of In-Game Fatigue on Decision Quality and Skill Execution of an AFL Player: A Spatiotemporal Analysis.
+"
+author: "Gabriel Thornton"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    code_folding: hide
+---
+
+```{r setup, R.options=knitr::opts_chunk$set(warnings=FALSE, message=FALSE, fig.width=12, fig.height=8, echo=FALSE)}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+```{r Introduction}
+# Load Packages ----
+library(tidyverse)
+library(plotly)
+library(broom)
+library(knitr)
+library(kableExtra)
+
+
+# Load Data ----
+afl <- read.csv("/home/gthornton1999/VU/3. Spatiotemporal/Assignment 3/Data/Assessment3_SpatiotemporalDataset2.csv")
+
+
+
+# Wrangle ----
+#column names
+colnames(afl)
+# how many unique actions are there?
+unique(afl$Action)
+# what type are eahc variable
+str(afl)
+
+# Define Fatigue using "Quarter" as the independent variable. 
+# bin the quarters into fatigue levels
+# assuming relatively linear increase in fatigue 
+afl$Fatigue_Level <- case_when(
+  afl$Quarter == 1 ~ "Low",        # Quarter 1: Early in the game
+  afl$Quarter == 2 ~ "Low",        # Quarter 2: Still relatively fresh
+  afl$Quarter == 3 ~ "Moderate",   # Quarter 3: Fatigue starting to accumulate
+  afl$Quarter == 4 ~ "High"        # Quarter 4: High fatigue
+)
+
+# Define action variables into "effective" and "ineffective"
+# Effective actions
+effective_actions <- afl %>% 
+  filter(Action %in% c("Handball Effective", "Kick Long To Advantage", 
+                       "Knock On Effective", "Spoil Gaining", 
+                       "Kick Inside 50", "Kick Long", 
+                       "Smotherer After Disposal"))
+
+# Ineffective or Clanger actions
+ineffective_actions <- afl %>% 
+  filter(Action %in% c("Handball Clanger", "Kick Clanger", 
+                       "Handball Ineffective", "Kick Ineffective", 
+                       "Ground Kick Ineffective"))
+```
+
+# Regression Analysis  
+# Does fatigue have a impact on skill execution? 
+
+
+
+```{r Regression Analysis}
+# Regression ----
+# Does fatigue have a impact on skill execution? 
+
+# Step 1: Create a binary skill execution variable on both skill df's
+effective_actions <- effective_actions %>%
+  mutate(EffectiveBinary = 1)
+
+ineffective_actions <- ineffective_actions %>%
+  mutate(EffectiveBinary = 0)
+
+# Step 2: Combine skill df's into 1 df
+afl_skill <- bind_rows(effective_actions, ineffective_actions)
+
+# Step 3: Run a logistic regression
+# will analyse whether fatigue level is significantly associated with the probability of executing an effective action
+skillvfatigue_model <- glm(EffectiveBinary ~ Fatigue_Level, family = "binomial", data = afl_skill)
+# Summarise regression
+summary(skillvfatigue_model)
+
+# make neat table using broom package
+regression_table <- tidy(skillvfatigue_model)
+# add odds ratios
+regression_table <- regression_table %>% 
+  mutate(odds_ratio = exp(estimate))
+
+# Tidy the model output
+model_summary <- tidy(skillvfatigue_model) %>%
+  mutate(
+    Odds_Ratio = exp(estimate),  # convert coefficients to odds ratios
+    estimate = round(estimate, 3),
+    std.error = round(std.error, 3),
+    statistic = round(statistic, 3),
+    p.value = round(p.value, 3),
+    Odds_Ratio = round(Odds_Ratio, 3)
+  )
+
+# Rename columns for clarity
+colnames(model_summary) <- c("Term", "Coefficient", "Std. Error", "Z value", "P value", "Odds Ratio")
+
+# Create a neat table
+kable(model_summary, caption = "Logistic Regression Summary: Effect of Fatigue on Skill Execution") %>%
+  kable_styling(full_width = FALSE, position = "center", bootstrap_options = c("striped", "hover"))
+
+
+
+
+
+# Step 4: Interpret summary statistics
+# Performance under high fatigue (intercept) is statistically significant (P value = 0.028)
+# The coefficients of Low and Moderate fatigue levels are positive = the player performs slightly better under less fatigue
+# However, the P values are greater than 0.05 = the differences in skill execution and fatigue levels are not statistically significant
+
+# Step 5: Visualise the effect
+ggplot(afl_skill, aes(x = Fatigue_Level, fill = as.factor(EffectiveBinary))) +
+  geom_bar(position = "fill") +
+  labs(x = "Fatigue Level", y = "Proportion of Actions", title = "Skill Execution by Fatigue Level") +
+  scale_fill_manual(values = c("0" = "orange", "1" = "purple"),
+                    labels = c("Ineffective", "Effective"),
+                    name = "Skill Execution") +
+  theme_minimal()
+# Shows the most ineffective skills occur when High Fatigue
+# The least is under moderate fatigue - why??
+
+# Step 6: Convert coefficients to Odds Ratios
+# tells us how the odds of executing an effective action change as fatigue level increases
+exp(coef(skillvfatigue_model))
+# intercept = 1.46 -> baseline of odds of an effective action when the fatigue level is high
+# Fatigue Level Low = 1.10 -> odds of an effective action are 1.10x higher in Low Fatigue than in High
+# Fatigue Level Moderate = 1.28 -> odds of an effective skill action are 1.28x higher in Moderate than in High Fatigue
+
+# Step 7: Overall interpretation
+
+# As fatigue increases, the odds of performing an effective action decreases.
+# players are more likely to perform well under low or moderate fatigue than high
+# 
+
+```
+
+
+# Spatial Distribution of Errors  
+  
+Using Fatigue levels to assess where skill errors commonly occur
+
+
+```{r  Spatial Distribution of Errors}
+# Spatial Distribution of Errors ----
+# Using Fatigue levels to assess where skill errors commonly occur
+
+# Step 1: Classify Actions 
+# already did this when creating the "ineffective_actions" data frame
+
+# Step 2: Group each individual ineffective action and remove multiple data points for the same action until there is one. 
+ineffective_actions_single <- ineffective_actions %>%
+  group_by(Action, Location, Quarter, Game) %>%
+  slice(1) %>%  # Take the first time stamp for that action group
+  ungroup()
+
+
+# Step 3: Plot bar chart using Location variables (field zones)
+ggplot(ineffective_actions_single, aes(x = Location, fill = Fatigue_Level)) +
+  geom_bar(position = "dodge") +
+  labs(
+    title = "Count of Ineffective Actions by Field Location and Fatigue Level",
+    x = "Field Zone",
+    y = "Count of Clangers",
+    fill = "Fatigue Level"
+  ) +
+  theme_minimal()
+
+
+
+
+```
+
+
+# Skill Outcome by Field Location and Fatigue Level
+
+```{r Skill Outcome by Location and Fatigue}
+# Comparing effective vs. ineffective actions across field locations and fatigue levels. 
+
+# Step 1: Creating df for individual effective actions (same method as Step 2)
+effective_actions_single <- effective_actions %>%
+  group_by(Action, Location, Quarter, Game) %>%
+  slice(1) %>%  # Take the first time stamp for that action group
+  ungroup()
+
+# Step 2: Create "Skill_Outcome" variable in each df
+ineffective_actions_single <- ineffective_actions_single %>%
+  mutate(Skill_Outcome = "Ineffective")
+effective_actions_single <- effective_actions_single %>% 
+  mutate(Skill_Outcome = "Effective")
+
+# Step 3: Combine the 2 df
+combined_actions_single <- bind_rows(effective_actions_single, ineffective_actions_single)
+
+# Step 4: Create a data frame for the counts of Skill Outcomes
+counts_df <- combined_actions_single %>%
+  group_by(Location, Skill_Outcome, Fatigue_Level) %>%
+  summarise(Count = n(), .groups = "drop")
+
+# Step 5: Create ggplot value
+spatial_interactive <- ggplot(counts_df, aes(x = Location, y = Count, fill = Skill_Outcome,
+                           text = paste0(
+                             "Location: ", Location, "<br>",
+                             "Skill Outcome: ", Skill_Outcome, "<br>",
+                             "Fatigue Level: ", Fatigue_Level, "<br>",
+                             "Count: ", Count
+                           ))) +
+  geom_col(position = "dodge") +
+  facet_wrap(~ Fatigue_Level) +
+  labs(
+    title = "Skill Outcome by Field Location and Fatigue Level",
+    x = " ",
+    y = "Action Count",
+    fill = "Skill Outcome"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Step 6: Convert to interactive plot
+ggplotly(spatial_interactive, tooltip = "text")
+
+
+```
+
+
+
+
+
+
+
+
+
