@@ -12,10 +12,9 @@ This was completed as my final assessment presentation for the `Spatiotemporal A
 This model analysis aids coaches in implementing tactical alterations and improved skill executin when under fatigue. 
 
 ## Files
-- `Assignment3_Storyboard.Rmd`: Main analysis in RMarkdown.
-- `Assignment3_Storyboard.html`: Knitted HTML version
-- `Football dataset.xlsx`: Excel file used in the project
-- `Assignment 3.RProj`: The Project used in RStudio
+- `Assignment3_RM.Rmd`: Main analysis in RMarkdown.
+- `Assignment3_RM.html`: Knitted HTML version
+- `Assignment3.RProj`: The Project used in RStudio
 
 
 ---
