@@ -1,18 +1,15 @@
 # Spatiotemporal_FatiguedSkills_AFL
 
-This project assesses how various differential key performance indicators (KPIs) influence match outcomes in the AFL.
+This project assesses how fatigue influences skill execution and decision making over the course of an AFL match.
 
-This was completed as my final assessment presentation for the `Introduction to Data Analytics for Sports Performance` module during teh Graduate Certificate for Sports Performance. 
+This was completed as my final assessment presentation for the `Spatiotemporal Analysis` module during the Graduate Certificate for Sports Performance. 
 
 ## Features
-- A data set organised per team in the AFL showcasing differential totals of key performance metrics against their opponents.
-- A regression analysis of differential metrics to assess their strength in influencing winning match outcomes.
-- An interactive heatmap showcasing correlations between KPIs and the Final Ladder Position.
-- Lasso regression supporting `Goal` differential as the most influential performance metric.
-- Table showcasing each teams Goal Differential and their predicted ladder position compared to their actual position at the end of the 2012 regular season. 
+- A logistic regression analysis on whether in-game fatigue effects skill execution.
+- A spatial distribution of effective and ineffective skills indicating which zone of the field exhibits the most errors under varying levels of fatigue.
 
 ## Why it Matters
-This model analysis aids coaching in focussing on metrics that promote successful match outcomes and inhibits unsuccesful outcomes for training purposes.
+This model analysis aids coaches in implementing tactical alterations and improved skill executin when under fatigue. 
 
 ## Files
 - `Assignment3_Storyboard.Rmd`: Main analysis in RMarkdown.
